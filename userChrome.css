@@ -1,0 +1,124 @@
+/* ==========================================================================
+   Auto-hiding address bar + bookmarks toolbar  -  Firefox 160 (classic UI)
+   Address bar on top, bookmarks toolbar (New Tab only) below it.
+   Both hide together and slide down together on hover, with eased motion.
+   ========================================================================== */
+
+:root:not([customizing], [inFullscreen], [inDOMFullscreen]) {
+
+  --nb-height: 40px;        /* height of the address bar row (34px if you use compact density) */
+  --nb-strip: 8px;          /* invisible hover strip left under the tab row */
+  --nb-hide-delay: 350ms;   /* grace period before sliding back up */
+
+  /* ---- motion ---- */
+  --nb-time-in: 400ms;                         /* reveal duration */
+  --nb-time-out: 260ms;                        /* hide duration (quicker than reveal) */
+  --nb-ease-in: cubic-bezier(.3, .7, .2, 1);   /* reveal: gentle start, long soft landing */
+  --nb-ease-out: cubic-bezier(.5, 0, .3, 1);   /* hide: slow start, accelerates, clean finish */
+  --nb-stagger: 60ms;                          /* bookmarks row trails the address bar */
+
+  &[uidensity="compact"] {
+    --nb-height: 34px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    --nb-time-in: 1ms;
+    --nb-time-out: 1ms;
+    --nb-stagger: 0ms;
+  }
+
+  /* Toolbox must paint ABOVE the web page (Firefox has toolbox z-index 0,
+     page area z-index 2; !important is needed to beat Firefox's own rule). */
+  #navigator-toolbox {
+    position: relative !important;
+    z-index: 100 !important;
+    overflow: visible !important;
+  }
+
+  /* HIDDEN: both bars leave the layout (the page fills the space) and float
+     under the toolbox. Only their bottom --nb-strip px remain below the tab
+     row as the invisible hover target. */
+  #nav-bar,
+  #PersonalToolbar {
+    position: absolute !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: -1 !important;
+    margin: 0 !important;
+    clip-path: inset(calc(100% - var(--nb-strip)) -50vw -100vh -50vw) !important;
+    opacity: 0 !important;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .30), 0 1px 3px rgba(0, 0, 0, .18) !important;
+    will-change: transform, opacity, clip-path !important;
+  }
+
+  /* Original order: address bar first ... */
+  #nav-bar {
+    top: 100% !important;
+    transform: translateY(calc(-100% + var(--nb-strip))) !important;
+    /* hiding: the address bar leaves just after the bookmarks row */
+    transition:
+      transform var(--nb-time-out) var(--nb-ease-out) calc(var(--nb-hide-delay) + var(--nb-stagger)),
+      clip-path var(--nb-time-out) var(--nb-ease-out) calc(var(--nb-hide-delay) + var(--nb-stagger)),
+      opacity   calc(var(--nb-time-out) * .8) ease-in calc(var(--nb-hide-delay) + var(--nb-stagger)) !important;
+  }
+
+  /* ... bookmarks toolbar directly underneath it. */
+  #PersonalToolbar {
+    top: calc(100% + var(--nb-height)) !important;
+    transform: translateY(calc(-100% - var(--nb-height) + var(--nb-strip))) !important;
+    /* hiding: the bookmarks row leaves first */
+    transition:
+      transform var(--nb-time-out) var(--nb-ease-out) var(--nb-hide-delay),
+      clip-path var(--nb-time-out) var(--nb-ease-out) var(--nb-hide-delay),
+      opacity   calc(var(--nb-time-out) * .8) ease-in var(--nb-hide-delay) !important;
+  }
+
+  /* VISIBLE: pointer over the toolbox (tab row, hover strip, either bar),
+     typing in the URL bar, URL suggestions open, a toolbar popup / bookmarks
+     folder open, or keyboard focus on a toolbar button. */
+  #navigator-toolbox:is(
+      :hover,
+      :has(#urlbar:focus-within),
+      :has(#urlbar[open]),
+      :has(#nav-bar [open="true"]),
+      :has(#PersonalToolbar [open="true"]),
+      :has(#nav-bar :focus-visible),
+      :has(#PersonalToolbar :focus-visible)
+    ) :is(#nav-bar, #PersonalToolbar) {
+    transform: none !important;
+    clip-path: inset(0 -50vw -100vh -50vw) !important;
+    opacity: 1 !important;
+  }
+
+  /* revealing: address bar first, bookmarks row follows after a short stagger;
+     the fade is quicker than the slide so the bar never looks ghostly */
+  #navigator-toolbox:is(
+      :hover,
+      :has(#urlbar:focus-within),
+      :has(#urlbar[open]),
+      :has(#nav-bar [open="true"]),
+      :has(#PersonalToolbar [open="true"]),
+      :has(#nav-bar :focus-visible),
+      :has(#PersonalToolbar :focus-visible)
+    ) #nav-bar {
+    transition:
+      transform var(--nb-time-in) var(--nb-ease-in) 0s,
+      clip-path var(--nb-time-in) var(--nb-ease-in) 0s,
+      opacity   calc(var(--nb-time-in) * .5) ease-out 0s !important;
+  }
+
+  #navigator-toolbox:is(
+      :hover,
+      :has(#urlbar:focus-within),
+      :has(#urlbar[open]),
+      :has(#nav-bar [open="true"]),
+      :has(#PersonalToolbar [open="true"]),
+      :has(#nav-bar :focus-visible),
+      :has(#PersonalToolbar :focus-visible)
+    ) #PersonalToolbar {
+    transition:
+      transform var(--nb-time-in) var(--nb-ease-in) var(--nb-stagger),
+      clip-path var(--nb-time-in) var(--nb-ease-in) var(--nb-stagger),
+      opacity   calc(var(--nb-time-in) * .5) ease-out var(--nb-stagger) !important;
+  }
+}
