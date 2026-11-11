@@ -1,0 +1,2 @@
+# FirefoxCustomCSS
+As name says
